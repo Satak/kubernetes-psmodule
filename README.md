@@ -21,6 +21,8 @@ Powershell module for Kubernetes kubectl command line tool. This module calls ku
 - Get-KubernetesNode
 - Get-KubernetesPodResource
 - Get-KubernetesNodeResource
+- Get-KubernetesEvictedPod
+- Clear-KubernetesEvictedPod
 
 ## Dynamic function parameters
 
