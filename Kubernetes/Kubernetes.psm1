@@ -95,7 +95,6 @@ function Remove-KubernetesPod {
         $PodName = $PsBoundParameters[$ParameterName]
     }
     process {
-        Write-Output $PodName
         kubectl delete pod $PodName -n $Namespace
     }
 }
