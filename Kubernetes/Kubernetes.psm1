@@ -95,6 +95,7 @@ function Remove-KubernetesPod {
         $PodName = $PsBoundParameters[$ParameterName]
     }
     process {
+        Write-Output $PodName
         kubectl delete pod $PodName -n $Namespace
     }
 }
@@ -387,6 +388,103 @@ function Get-KubernetesNodeResource {
     }
     
     end {
+    }
+}
+
+function Get-KubernetesEvictedPod {
+    [CmdletBinding()]
+    param ()
+    DynamicParam {
+        # Set the dynamic parameters' name
+        $ParameterName = 'Namespace'
+        
+        # Create the dictionary 
+        $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+
+        # Create the collection of attributes
+        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+        
+        # Create and set the parameters' attributes
+        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+        $ParameterAttribute.Mandatory = $true
+        $ParameterAttribute.Position = 1
+
+        # Add the attributes to the attributes collection
+        $AttributeCollection.Add($ParameterAttribute)
+
+        # Generate and set the ValidateSet 
+        $arrSet = Get-KubernetesNamespace
+        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+
+        # Add the ValidateSet to the attributes collection
+        $AttributeCollection.Add($ValidateSetAttribute)
+
+        # Create and return the dynamic parameter
+        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+        $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
+        return $RuntimeParameterDictionary
+    }
+    begin {
+        # Bind the parameter to a friendly variable
+        $Namespace = $PsBoundParameters[$ParameterName]
+    }
+    process {
+
+        $fieldSelector = '--field-selector=status.phase=Failed'
+
+        $jsonPodData = kubectl get pods $fieldSelector -n $Namespace -o json | ConvertFrom-Json | Select-Object -ExpandProperty items
+        $jsonPodData | foreach-object {
+            [PSCustomObject]@{
+                Name = $_.metadata.name
+                Status = $_.status.phase
+            }
+        }
+    }
+}
+
+function Clear-KubernetesEvictedPod {
+    [CmdletBinding()]
+    param (
+    )
+    DynamicParam {
+        # Set the dynamic parameters' name
+        $ParameterName = 'Namespace'
+        
+        # Create the dictionary 
+        $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+
+        # Create the collection of attributes
+        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+        
+        # Create and set the parameters' attributes
+        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+        $ParameterAttribute.Mandatory = $true
+        $ParameterAttribute.Position = 1
+
+        # Add the attributes to the attributes collection
+        $AttributeCollection.Add($ParameterAttribute)
+
+        # Generate and set the ValidateSet 
+        $arrSet = Get-KubernetesNamespace
+        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+
+        # Add the ValidateSet to the attributes collection
+        $AttributeCollection.Add($ValidateSetAttribute)
+
+        # Create and return the dynamic parameter
+        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+        $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
+        return $RuntimeParameterDictionary
+    }
+    begin {
+        # Bind the parameter to a friendly variable
+        $Namespace = $PsBoundParameters[$ParameterName]
+    }
+    process {
+
+        Get-KubernetesEvictedPod -Namespace $Namespace | ForEach-Object {
+            kubectl delete pod $_.name -n $Namespace
+        }
     }
 }
 
